@@ -12,7 +12,7 @@ type HomeScreenNavigationProp = StackNavigationProp<BottomTabParamList, 'Wallet'
   navigate: (screen: 'Wallet', params: TabWalletParamList['WalletScreen']) => void;
 };
 
-const CONTRACT_ADDRESS = "0xb2484cf5bA0922b0375d84E138281F55fC537350";
+const CONTRACT_ADDRESS = "0x7948D6AcfCe545549F0C01A15527E2c6A1F8a49a";
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
@@ -151,7 +151,7 @@ const HomeScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollView}>
         <View style={styles.container}>
-          <Text style={styles.title}>E-SIM Wallet</Text>
+          <Text style={styles.title}>E-SIM Home</Text>
           {address ? (
             <>
               <View style={styles.card}>

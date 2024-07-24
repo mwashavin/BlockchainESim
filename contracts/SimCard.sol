@@ -16,6 +16,7 @@ contract ESIM {
     event UserRegistered(address indexed userAddress, string simNumber);
     event UserUpdated(address indexed userAddress, string name, string email);
     event Deposit(address indexed userAddress, uint256 amount);
+    event UserDeleted(address indexed userAddress, string simNumber);
 
     function registerUser(string memory _name, string memory _email) public {
         require(!users[msg.sender].isRegistered, "User already registered");
@@ -46,10 +47,11 @@ contract ESIM {
         return (users[userAddress].name, users[userAddress].email, true, users[userAddress].balance);
     }
 
-    function deposit() public payable {
+    function deposit(uint256 _amount) public payable {
         require(users[msg.sender].isRegistered, "User not registered");
-        users[msg.sender].balance += msg.value;
-        emit Deposit(msg.sender, msg.value);
+        require(msg.value == _amount, "Sent value does not match the specified amount");
+        users[msg.sender].balance += _amount;
+        emit Deposit(msg.sender, _amount);
     }
 
     function getBalance() public view returns (uint256) {
@@ -65,5 +67,16 @@ contract ESIM {
             result[i] = bytes1(uint8(uint(uint8(hash[i])) % 10) + 48);
         }
         return string(result);
+    }
+
+    function deleteAccount(string memory _simNumber) public {
+        require(users[msg.sender].isRegistered, "User not registered");
+        require(keccak256(abi.encodePacked(users[msg.sender].simNumber)) == keccak256(abi.encodePacked(_simNumber)), "SIM number does not match");
+        require(users[msg.sender].balance == 0, "Balance must be zero to delete account");
+
+        delete simToAddress[_simNumber];
+        delete users[msg.sender];
+
+        emit UserDeleted(msg.sender, _simNumber);
     }
 }

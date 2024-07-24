@@ -4,7 +4,7 @@ import { useWallet } from './WalletContext';
 import { ethers } from 'ethers';
 import ESIM from '../artifacts/contracts/SimCard.sol/ESIM.json';
 
-const CONTRACT_ADDRESS = "0xaf47fA3981E8D942f638A35c6c6d14C1D84d1ace";
+const CONTRACT_ADDRESS = "0x7948D6AcfCe545549F0C01A15527E2c6A1F8a49a";
 
 const LoginScreen: React.FC = ({ route, navigation }) => {
   const { address } = useWallet();

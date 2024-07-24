@@ -31,8 +31,8 @@ const WalletConnect: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
       <View style={styles.container}>
-        <Text style={styles.title}>Welcome to CryptoWallet</Text>
-        <Text style={styles.subtitle}>Connect your wallet to get started</Text>
+        <Text style={styles.title}>Welcome to SimCard</Text>
+        <Text style={styles.subtitle}>Powered by BlockChain</Text>
         <TouchableOpacity style={styles.connectButton} onPress={connectWallet}>
           <Text style={styles.connectButtonText}>Connect Wallet</Text>
         </TouchableOpacity>

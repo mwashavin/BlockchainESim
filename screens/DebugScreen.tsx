@@ -3,16 +3,19 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ScrollVi
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ethers } from 'ethers';
 import { useWallet } from './WalletContext';
+import { useNavigation } from '@react-navigation/native';
 import ESIM from '../artifacts/contracts/SimCard.sol/ESIM.json';
 
-const CONTRACT_ADDRESS = "0xb2484cf5bA0922b0375d84E138281F55fC537350";
+const CONTRACT_ADDRESS = "0x7948D6AcfCe545549F0C01A15527E2c6A1F8a49a";
 
 const ProfileScreen = () => {
-  const { address } = useWallet();
+  const { address, disconnect } = useWallet();
+  const navigation = useNavigation();
   const [userDetails, setUserDetails] = useState({ name: '', email: '', simNumber: '' });
   const [editMode, setEditMode] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [editedEmail, setEditedEmail] = useState('');
+  const [error, setError] = useState(''); // State variable for error message
 
   useEffect(() => {
     fetchUserDetails();
@@ -38,7 +41,7 @@ const ProfileScreen = () => {
       setEditedEmail(user.email);
     } catch (error) {
       console.error('Error fetching user details:', error);
-      Alert.alert('Error', 'Failed to fetch user details');
+      setError('Failed to fetch user details'); // Set error message
     }
   };
 
@@ -66,7 +69,80 @@ const ProfileScreen = () => {
       Alert.alert('Success', 'User details updated successfully');
     } catch (error) {
       console.error('Error updating user details:', error);
-      Alert.alert('Error', 'Failed to update user details');
+      setError('Failed to update user details'); // Set error message
+    }
+  };
+
+  const deleteAccount = async () => {
+    console.log('Delete account function called');
+    console.log('Current user details:', userDetails);
+
+    try {
+      console.log('Checking for ethereum object');
+      if (!(window as any).ethereum) {
+        console.error('MetaMask not detected');
+        Alert.alert('Error', 'MetaMask is not installed');
+        return;
+      }
+
+      console.log('Initializing Web3Provider');
+      const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+      
+      console.log('Requesting account access');
+      await provider.send("eth_requestAccounts", []);
+      
+      console.log('Getting signer');
+      const signer = provider.getSigner();
+      
+      console.log('Getting signer address');
+      const signerAddress = await signer.getAddress();
+      console.log('Signer address:', signerAddress);
+
+      console.log('Initializing contract');
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ESIM.abi, signer);
+      
+      console.log('Checking if contract method exists');
+      if (typeof contract.deleteAccount !== 'function') {
+        console.error('deleteAccount method not found in contract ABI');
+        Alert.alert('Error', 'Contract method not found. Please check the contract ABI.');
+        return;
+      }
+
+      console.log('Calling deleteAccount method with SIM number:', userDetails.simNumber);
+      const tx = await contract.deleteAccount(userDetails.simNumber);
+      console.log('Transaction sent:', tx.hash);
+      
+      console.log('Waiting for transaction confirmation');
+      const receipt = await tx.wait();
+      console.log('Transaction receipt:', receipt);
+
+      if (receipt.status === 1) {
+        console.log('Account deleted successfully');
+        Alert.alert('Success', 'Your account has been deleted');
+        disconnect();
+        navigation.navigate('WalletConnect');
+      } else {
+        console.error('Transaction failed');
+        throw new Error('Transaction failed');
+      }
+    } catch (error) {
+      console.error('Error in deleteAccount function:', error);
+      let errorMessage = 'Failed to delete account. ';
+      if (error.message.includes('User not registered')) {
+        errorMessage += 'User is not registered.';
+      } else if (error.message.includes('SIM number does not match')) {
+        errorMessage += 'SIM number does not match the registered number.';
+      } else if (error.message.includes('Balance must be zero')) {
+        errorMessage += 'Your balance must be zero to delete the account.';
+      } else if (error.message.includes('user rejected transaction')) {
+        errorMessage += 'Transaction was rejected in MetaMask.';
+      } else if (error.message.includes('insufficient funds')) {
+        errorMessage += 'Insufficient funds for gas.';
+      } else {
+        errorMessage += 'Error: ' + error.message;
+      }
+      console.error('Detailed error:', errorMessage);
+      setError(errorMessage); // Set error message
     }
   };
 
@@ -130,6 +206,7 @@ const ProfileScreen = () => {
           <Text style={styles.title}>{editMode ? "Edit Profile" : "Profile"}</Text>
           {renderEditButton()}
         </View>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null} {/* Render error message */}
         <View style={[styles.profileSection, editMode && styles.profileSectionEditing]}>
           <View style={[styles.avatarContainer, editMode && styles.avatarContainerEditing]}>
             <Text style={styles.avatarText}>{userDetails.name.charAt(0).toUpperCase()}</Text>
@@ -142,9 +219,14 @@ const ProfileScreen = () => {
               <Text style={styles.actionText}>Save Changes</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionText}>Log Out</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.actionButton} onPress={disconnect}>
+                <Text style={styles.actionText}>Log Out</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={deleteAccount}>
+                <Text style={styles.actionText}>Delete SimCard Account</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </ScrollView>
@@ -159,6 +241,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+    marginTop: 10,
   },
   header: {
     padding: 20,
@@ -265,6 +351,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginVertical: 10,
   },
 });
 
