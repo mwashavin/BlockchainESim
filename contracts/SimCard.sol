@@ -58,8 +58,8 @@ contract ESIM {
     }
 
     function generateSimNumber(address _userAddress) internal pure returns (string memory) {
-        // Define prefix for SIM number as per TS48 requirements
-        string memory prefix = "8901";
+        // Define prefix for SIM number for Kenya as per TS48 requirements
+        string memory prefix = "8925";
         bytes32 hash = keccak256(abi.encodePacked(_userAddress));
         bytes memory result = new bytes(16);
         
