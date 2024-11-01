@@ -16,7 +16,6 @@ contract ESIM {
     event UserRegistered(address indexed userAddress, string simNumber);
     event UserUpdated(address indexed userAddress, string name, string email);
     event Deposit(address indexed userAddress, uint256 amount);
-    event UserDeleted(address indexed userAddress, string simNumber);
 
     function registerUser(string memory _name, string memory _email) public {
         require(!users[msg.sender].isRegistered, "User already registered");
@@ -47,11 +46,10 @@ contract ESIM {
         return (users[userAddress].name, users[userAddress].email, true, users[userAddress].balance);
     }
 
-    function deposit(uint256 _amount) public payable {
+    function deposit() public payable {
         require(users[msg.sender].isRegistered, "User not registered");
-        require(msg.value == _amount, "Sent value does not match the specified amount");
-        users[msg.sender].balance += _amount;
-        emit Deposit(msg.sender, _amount);
+        users[msg.sender].balance += msg.value;
+        emit Deposit(msg.sender, msg.value);
     }
 
     function getBalance() public view returns (uint256) {
@@ -60,23 +58,37 @@ contract ESIM {
     }
 
     function generateSimNumber(address _userAddress) internal pure returns (string memory) {
+        // Define prefix for SIM number for Kenya as per TS48 requirements
+        string memory prefix = "8925";
         bytes32 hash = keccak256(abi.encodePacked(_userAddress));
-        bytes memory result = new bytes(10);
-        result[0] = "0";
-        for (uint i = 1; i < 10; i++) {
+        bytes memory result = new bytes(16);
+        
+        for (uint i = 0; i < 16; i++) {
             result[i] = bytes1(uint8(uint(uint8(hash[i])) % 10) + 48);
         }
-        return string(result);
+        
+        string memory simNumberWithoutChecksum = string(abi.encodePacked(prefix, string(result)));
+        string memory finalSimNumber = string(abi.encodePacked(simNumberWithoutChecksum, calculateLuhnChecksum(simNumberWithoutChecksum)));
+        
+        return finalSimNumber;
     }
 
-    function deleteAccount(string memory _simNumber) public {
-        require(users[msg.sender].isRegistered, "User not registered");
-        require(keccak256(abi.encodePacked(users[msg.sender].simNumber)) == keccak256(abi.encodePacked(_simNumber)), "SIM number does not match");
-        require(users[msg.sender].balance == 0, "Balance must be zero to delete account");
-
-        delete simToAddress[_simNumber];
-        delete users[msg.sender];
-
-        emit UserDeleted(msg.sender, _simNumber);
+    function calculateLuhnChecksum(string memory number) internal pure returns (string memory) {
+        uint8 sum = 0;
+        bool alternate = false;
+        
+        bytes memory numberBytes = bytes(number);
+        for (int i = int(numberBytes.length) - 1; i >= 0; i--) {
+            uint8 n = uint8(numberBytes[uint(i)]) - 48;
+            if (alternate) {
+                n *= 2;
+                if (n > 9) n -= 9;
+            }
+            sum += n;
+            alternate = !alternate;
+        }
+        
+        uint8 checksum = (10 - (sum % 10)) % 10;
+        return string(abi.encodePacked(uint8(48 + checksum)));
     }
 }
