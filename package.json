@@ -37,7 +37,7 @@
     "@walletconnect/modal-react-native": "^1.1.0",
     "@walletconnect/react-native-compat": "^2.14.0",
     "@web3modal/ethers-react-native": "^1.4.4",
-    "expo": "^51.0.21",
+    "expo": "^51.0.26",
     "expo-application": "~5.9.1",
     "expo-asset": "~10.0.10",
     "expo-constants": "~16.0.2",
